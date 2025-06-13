@@ -1,0 +1,26 @@
+{
+  "name": "Grow A Garden Alerts",
+  "short_name": "GAG",
+  "start_url": "./growagarden.html",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#3b43ff",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "carrot.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "carrot.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "carrot.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
