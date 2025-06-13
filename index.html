@@ -30,15 +30,26 @@
       transform: translateY(-5px);
       box-shadow: 0 8px 16px rgba(0,0,0,0.2);
     }
+    .weather-box {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .weather-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
   </style>
 </head>
-
-
+<body>
   <h1 class="text-4xl font-bold text-center my-8 text-green-700 animate-fadeIn">Grow A Garden Live Feed 🌻</h1>
 
   <div id="status-checker" class="max-w-md mx-auto bg-white/90 p-6 rounded-xl border-4 border-green-500 shadow-xl text-center animate-slideIn">
     <div id="status-text" class="text-lg font-semibold mb-2">Checking server...</div>
     <div id="uptime" class="text-sm text-gray-600">Uptime: 0s</div>
+  </div>
+
+  <div id="weather-container" class="max-w-md mx-auto bg-white/90 p-6 rounded-xl border-4 border-green-500 shadow-xl text-center mt-6 weather-box animate-slideIn">
+    <h2 class="text-xl font-semibold text-green-700 mb-4">Current Weather 🌦️</h2>
+    <div id="weather-content" class="text-lg font-medium text-gray-800">Fetching weather...</div>
   </div>
 
   <div id="status" class="text-center text-lg font-semibold my-4"></div>
@@ -57,8 +68,10 @@
 
   <script>
     const stockURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/stock';
+    const weatherURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/weather';
     const statusEl = document.getElementById('status');
     const container = document.getElementById('stock-container');
+    const weatherContainer = document.getElementById('weather-content');
     const refreshBtn = document.getElementById('refresh-btn');
     const subscribeBtn = document.getElementById('subscribe-btn');
     const statusTextEl = document.getElementById('status-text');
@@ -68,7 +81,7 @@
     const debugContent = document.getElementById('debug-content');
     const closeDebug = document.getElementById('close-debug');
 
-    let latestData = {}, first = true, notified = false, seconds = 0;
+    let latestData = {}, latestWeather = {}, first = true, notified = false, seconds = 0;
 
     function updateStatus(msg, col = '#2e7d32') {
       statusEl.textContent = msg;
@@ -99,6 +112,29 @@
       if (q >= 20) return 'uncommon';
       if (q >= 5) return 'rare';
       return 'epic';
+    }
+
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${minutes}m ${secs}s`;
+    }
+
+    function displayWeather(data) {
+      if (!hasChanged(latestWeather, data)) return;
+      latestWeather = data;
+      const activeWeather = data.weather.find(w => w.active) || null;
+      if (activeWeather) {
+        const remainingTime = activeWeather.end_duration_unix - Math.floor(Date.now() / 1000);
+        weatherContainer.innerHTML = `
+          <div class="text-green-700 font-semibold">${activeWeather.weather_name}</div>
+          <div class="text-sm text-gray-600">Duration: ${formatTime(activeWeather.duration)}</div>
+          <div class="text-sm text-gray-600">Time Left: ${remainingTime > 0 ? formatTime(remainingTime) : 'Ending soon'}</div>
+        `;
+      } else {
+        weatherContainer.innerHTML = `<div class="text-gray-600">No active weather event</div>`;
+      }
+      gsap.from(weatherContainer, { opacity: 0, y: 10, duration: 0.5 });
     }
 
     function display(data) {
@@ -170,6 +206,19 @@
       else first = false;
     }
 
+    async function fetchWeather() {
+      try {
+        const response = await fetch(weatherURL);
+        const data = await response.json();
+        debugContent.textContent += `\nWeather Data: ${JSON.stringify(data, null, 2)}`;
+        displayWeather(data);
+      } catch (e) {
+        console.error(e);
+        weatherContainer.innerHTML = `<div class="text-red-600">Failed to fetch weather ❌</div>`;
+        debugContent.textContent += `\nWeather Error: ${e.message}`;
+      }
+    }
+
     async function fetchStock() {
       try {
         updateStatus("Fetching stock...", "#2e7d32");
@@ -186,7 +235,9 @@
     }
 
     fetchStock();
+    fetchWeather();
     setInterval(fetchStock, 15000);
+    setInterval(fetchWeather, 15000);
     refreshBtn.onclick = () => location.reload();
     subscribeBtn.onclick = () => {
       Notification.requestPermission().then(() => {
