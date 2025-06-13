@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Grow A Garden Live Feed</title>
+  <meta name="theme-color" content="#4caf50" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: url('BACKGROUND_URL') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+    }
+    .dropdown {
+      transition: all 0.3s ease;
+      transform-origin: top;
+    }
+    .rarity {
+      transition: transform 0.2s ease;
+    }
+    .rarity:hover {
+      transform: scale(1.05);
+    }
+    .item-card {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .item-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body class="font-sans text-gray-800 bg-gradient-to-b from-green-50 to-green-100">
+  <nav class="flex justify-center gap-4 p-4 bg-green-600/90 shadow-lg sticky top-0 z-50">
+    <div class="tab px-6 py-3 bg-green-500 text-white rounded-lg cursor-pointer hover:bg-green-600 transition-colors duration-200">🌱 Live Stock</div>
+    <div class="tab px-6 py-3 bg-green-500 text-white rounded-lg cursor-pointer hover:bg-green-600 transition-colors duration-200">🛒 Shop</div>
+    <div class="tab px-6 py-3 bg-green-500 text-white rounded-lg cursor-pointer hover:bg-green-600 transition-colors duration-200">🔔 Notifications</div>
+  </nav>
+
+  <h1 class="text-4xl font-bold text-center my-8 text-green-700 animate-fadeIn">Grow A Garden Live Feed 🌻</h1>
+
+  <div id="status-checker" class="max-w-md mx-auto bg-white/90 p-6 rounded-xl border-4 border-green-500 shadow-xl text-center animate-slideIn">
+    <div id="status-text" class="text-lg font-semibold mb-2">Checking server...</div>
+    <div id="uptime" class="text-sm text-gray-600">Uptime: 0s</div>
+  </div>
+
+  <div id="status" class="text-center text-lg font-semibold my-4"></div>
+  <div class="flex justify-center gap-4">
+    <button id="refresh-btn" class="px-6 py-3 bg-amber-500 text-white rounded-lg font-bold hover:bg-amber-600 transition-colors duration-200 shadow-md">🔄 Refresh</button>
+    <button id="subscribe-btn" class="px-6 py-3 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors duration-200 shadow-md">🔔 Subscribe</button>
+  </div>
+
+  <div id="stock-container" class="max-w-7xl mx-auto p-4"></div>
+
+  <div id="debug-tab" class="fixed bottom-6 right-6 bg-green-600 text-white p-4 rounded-full text-xl cursor-pointer shadow-lg hover:bg-green-700 transition-colors duration-200">🪲</div>
+  <div id="debug-window" class="fixed bottom-20 right-6 w-80 max-h-96 bg-white border-2 border-green-500 rounded-xl p-4 overflow-y-auto shadow-xl hidden">
+    <button id="close-debug" class="bg-red-600 text-white px-3 py-1 rounded-lg float-right hover:bg-red-700 transition-colors duration-200">Close</button>
+    <pre id="debug-content" class="text-xs whitespace-pre-wrap break-all">Loading...</pre>
+  </div>
+
+  <script>
+    const stockURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/stock';
+    const statusEl = document.getElementById('status');
+    const container = document.getElementById('stock-container');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const subscribeBtn = document.getElementById('subscribe-btn');
+    const statusTextEl = document.getElementById('status-text');
+    const uptimeEl = document.getElementById('uptime');
+    const debugTab = document.getElementById('debug-tab');
+    const debugWindow = document.getElementById('debug-window');
+    const debugContent = document.getElementById('debug-content');
+    const closeDebug = document.getElementById('close-debug');
+
+    let latestData = {}, first = true, notified = false, seconds = 0;
+
+    function updateStatus(msg, col = '#2e7d32') {
+      statusEl.textContent = msg;
+      statusTextEl.textContent = msg;
+      statusTextEl.style.color = col;
+      gsap.to(statusTextEl, { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 });
+    }
+
+    setInterval(() => {
+      seconds++;
+      uptimeEl.textContent = `Uptime: ${seconds}s`;
+    }, 1000);
+
+    function notify() {
+      if (!("Notification" in window) || notified) return;
+      if (Notification.permission === "granted") {
+        new Notification("Garden Stock Updated!", { body: "Reload to see latest stock!", icon: container.querySelector('img')?.src });
+        notified = true;
+      }
+    }
+
+    function hasChanged(o, n) {
+      return JSON.stringify(o) !== JSON.stringify(n);
+    }
+
+    function rarity(q) {
+      if (q >= 50) return 'common';
+      if (q >= 20) return 'uncommon';
+      if (q >= 5) return 'rare';
+      return 'epic';
+    }
+
+    function display(data) {
+      if (!hasChanged(latestData, data)) return;
+      latestData = data;
+      notified = false;
+      container.innerHTML = '';
+      for (const cat in data) {
+        const arr = data[cat];
+        if (!Array.isArray(arr)) continue;
+        const sec = document.createElement('div');
+        sec.className = 'stock-category mb-6 p-4 bg-white/90 rounded-xl border-4 border-green-500 shadow-lg';
+        const h2 = document.createElement('h2');
+        h2.className = 'text-xl font-semibold text-green-700 bg-green-200 p-3 rounded-lg text-center';
+        h2.textContent = cat.replace(/_/g, ' ');
+        sec.appendChild(h2);
+        const items = document.createElement('div');
+        items.className = 'items grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4';
+        arr.forEach((it, index) => {
+          if (it.icon) {
+            const card = document.createElement('div');
+            card.className = 'item-card relative bg-white p-4 rounded-lg border-2 border-amber-400 shadow-md cursor-pointer';
+            const r = rarity(it.quantity || 0);
+            const rb = document.createElement('div');
+            rb.className = `rarity ${r} text-white text-xs font-bold px-2 py-1 rounded mb-2`;
+            rb.textContent = r.toUpperCase();
+            rb.style.backgroundColor = r === 'common' ? '#9e9e9e' : r === 'uncommon' ? '#66bb6a' : r === 'rare' ? '#42a5f5' : '#ab47bc';
+            card.appendChild(rb);
+            const img = document.createElement('img');
+            img.src = it.icon;
+            img.alt = it.display_name || it.item_id;
+            img.className = 'w-24 h-24 object-contain mx-auto';
+            card.appendChild(img);
+            const nm = document.createElement('div');
+            nm.className = 'item-name font-bold mt-2 text-gray-800 text-sm';
+            nm.textContent = it.display_name || it.item_id;
+            card.appendChild(nm);
+            const qty = document.createElement('div');
+            qty.className = 'item-qty text-gray-600 text-sm';
+            qty.textContent = `Qty: ${it.quantity || 0}`;
+            card.appendChild(qty);
+
+            if (it.quantity > 0) {
+              const dropdown = document.createElement('div');
+              dropdown.className = 'dropdown absolute top-full left-0 right-0 bg-white border-2 border-green-500 rounded-lg p-4 mt-2 shadow-lg hidden';
+              const buyBtn = document.createElement('button');
+              buyBtn.className = 'w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200';
+              buyBtn.textContent = 'Buy in Roblox';
+              buyBtn.onclick = () => window.open('https://www.roblox.com/games/126884695634066/Grow-a-Garden?gameSetTypeId=100000003&homePageSessionInfo=43809c21-f2d6-45f6-ba36-b9a4f3a73aef&isAd=false&numberOfLoadedTiles=50&page=homePage&placeId=126884695634066&playContext=homePage&position=0&sortPos=3&universeId=7436755782#ropro-quick-play', '_blank');
+              dropdown.appendChild(buyBtn);
+              card.appendChild(dropdown);
+
+              card.onclick = () => {
+                const isOpen = dropdown.style.display === 'block';
+                dropdown.style.display = isOpen ? 'none' : 'block';
+                gsap.fromTo(dropdown, { scaleY: 0, opacity: 0 }, { scaleY: 1, opacity: 1, duration: 0.3, ease: 'power2.out' });
+              };
+            }
+
+            items.appendChild(card);
+            gsap.from(card, { opacity: 0, y: 20, duration: 0.5, delay: index * 0.1 });
+          }
+        });
+        sec.appendChild(items);
+        container.appendChild(sec);
+        gsap.from(sec, { opacity: 0, y: 30, duration: 0.7 });
+      }
+      if (!first) notify();
+      else first = false;
+    }
+
+    async function fetchStock() {
+      try {
+        updateStatus("Fetching stock...", "#2e7d32");
+        const response = await fetch(stockURL);
+        const j = await response.json();
+        debugContent.textContent = JSON.stringify(j, null, 2);
+        display(j);
+        updateStatus("Stock updated ✅", "#00c853");
+      } catch (e) {
+        console.error(e);
+        updateStatus("Failed to fetch ❌", "#c62828");
+        debugContent.textContent = `Error: ${e.message}`;
+      }
+    }
+
+    fetchStock();
+    setInterval(fetchStock, 15000);
+    refreshBtn.onclick = () => location.reload();
+    subscribeBtn.onclick = () => {
+      Notification.requestPermission().then(() => {
+        subscribeBtn.textContent = Notification.permission === "granted" ? "🔔 Subscribed" : Notification.permission === "denied" ? "🔕 Denied" : "🔔 Subscribe";
+      });
+    };
+    debugTab.onclick = () => {
+      debugWindow.style.display = debugWindow.style.display === 'block' ? 'none' : 'block';
+      if (debugWindow.style.display === 'block') {
+        gsap.from(debugWindow, { x: 20, opacity: 0, duration: 0.5 });
+      }
+    };
+    closeDebug.onclick = () => {
+      gsap.to(debugWindow, { x: 20, opacity: 0, duration: 0.3, onComplete: () => debugWindow.style.display = 'none' });
+    };
+
+    // GSAP animations for initial load
+    gsap.from('.navbar', { y: -50, opacity: 0, duration: 0.8 });
+    gsap.from('h1', { opacity: 0, scale: 0.8, duration: 1 });
+  </script>
+</body>
+</html>
