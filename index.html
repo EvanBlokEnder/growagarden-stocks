@@ -3,47 +3,90 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Grow A Garden Live Feed</title>
-  <meta name="theme-color" content="#4caf50" />
+  <title>Grow A Garden Stock V2</title>
+  <meta name="theme-color" content="#4CAF50" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      background: linear-gradient(to bottom, #e0f7fa, #b2dfdb);
+      background: #1a202c;
       min-height: 100vh;
       font-family: 'Inter', system-ui, sans-serif;
+      color: #e2e8f0;
+      margin: 0;
+      padding: 0;
     }
-    .container {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
-      border-radius: 1rem;
+    .sidebar {
+      background: #2d3748;
+      width: 250px;
+      height: 100vh;
+      position: fixed;
       padding: 1.5rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s ease;
     }
-    .dropdown {
-      transition: all 0.3s ease;
-      transform-origin: top;
+    .sidebar.hidden {
+      transform: translateX(-250px);
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      margin-bottom: 0.5rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .nav-item.active, .nav-item:hover {
+      background-color: #4a5568;
+    }
+    .hamburger {
+      display: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #e2e8f0;
+      padding: 1rem;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 1000;
+    }
+    .main-content {
+      margin-left: 250px;
+      padding: 1.5rem;
+      transition: margin-left 0.3s ease;
+    }
+    .main-content.shifted {
+      margin-left: 0;
+    }
+    .card, .item-card {
+      background: #2d3748;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      text-align: center;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .card:hover, .item-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+    }
+    .card-icon {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .status-bar {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #2d3748;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
       z-index: 10;
-    }
-    .rarity {
-      transition: transform 0.2s ease;
-    }
-    .rarity:hover {
-      transform: scale(1.05);
-    }
-    .item-card {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .item-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-    }
-    .weather-box {
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .weather-box:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
     .switch {
       position: relative;
@@ -63,7 +106,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      background-color: #ccc;
+      background-color: #4a5568;
       transition: 0.4s;
       border-radius: 34px;
     }
@@ -79,44 +122,148 @@
       border-radius: 50%;
     }
     input:checked + .slider {
-      background-color: #4caf50;
+      background-color: #48bb78;
     }
     input:checked + .slider:before {
       transform: translateX(26px);
     }
+    .badge {
+      background: #4a5568;
+      padding: 0.25rem 0.75rem;
+      border-radius: 0.75rem;
+      font-size: 0.75rem;
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+    }
+    .rarity {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      color: white;
+    }
+    .weather-info {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: #4a5568;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+    @media (max-width: 767px) {
+      .hamburger {
+        display: block;
+      }
+      .sidebar {
+        transform: translateX(-250px);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0;
+      }
+      .main-content.shifted {
+        margin-left: 250px;
+      }
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1 class="text-3xl font-bold text-center my-8 text-green-800">Grow A Garden Live Feed 🌻</h1>
-
-  <div class="flex justify-center items-center gap-4 mb-6">
-    <label class="flex items-center gap-2 text-lg font-medium text-gray-700">
-      <span>In Stock</span>
-      <div class="switch">
-        <input type="checkbox" id="view-toggle">
-        <span class="slider"></span>
+  <div class="hamburger">☰</div>
+  <div class="sidebar" id="sidebar">
+    <div class="text-2xl font-bold mb-6 flex items-center gap-2">
+      <span class="text-green-400">🌱</span> Grow A Garden
+    </div>
+    <nav>
+      <div class="nav-item active" data-category="dashboard">
+        <span>📊</span> Dashboard
       </div>
-      <span>All Items</span>
-    </label>
+      <div class="nav-item" data-category="seed_stock">
+        <span>🌾</span> Seeds
+      </div>
+      <div class="nav-item" data-category="gear_stock">
+        <span>⚙️</span> Gear
+      </div>
+      <div class="nav-item" data-category="egg_stock">
+        <span>🥚</span> Eggs
+      </div>
+      <div class="nav-item" data-category="cosmetic_stock">
+        <span>💄</span> Cosmetics
+      </div>
+      <div class="nav-item" data-category="eventshop_stock">
+        <span>🎉</span> Events
+      </div>
+    </nav>
+    <div class="weather-info" id="weather-info">
+      <p class="text-sm text-gray-300">Weather: Loading...</p>
+      <p class="text-sm text-gray-300">Time Left: Loading...</p>
+    </div>
   </div>
 
-  <div id="status-checker" class="container max-w-md mx-auto text-center">
-    <div id="status-text" class="text-lg font-semibold mb-2">Checking server...</div>
-    <div id="uptime" class="text-sm text-gray-600">Uptime: 0s</div>
-  </div>
+  <div class="main-content" id="main-content">
+    <div class="status-bar">
+      <span class="text-green-400">● Connected</span>
+      <span>Updated: 05:17 PM</span>
+    </div>
 
-  <div id="weather-container" class="container max-w-md mx-auto mt-6 text-center weather-box">
-    <h2 class="text-xl font-semibold text-green-800 mb-4">Current Weather 🌦️</h2>
-    <div id="weather-content" class="text-lg font-medium text-gray-800">Fetching weather...</div>
-  </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-16" id="summary-cards">
+      <div class="card relative">
+        <div class="card-icon text-green-400">🌱</div>
+        <h3 class="text-lg font-semibold">Available Seeds</h3>
+        <p class="text-3xl font-bold mt-2" id="seed-count">4</p>
+        <p class="text-sm text-gray-400 mt-1">Updated recently</p>
+        <div class="badge text-green-400" id="seed-time">1m 0s</div>
+      </div>
+      <div class="card relative">
+        <div class="card-icon text-yellow-500">⚙️</div>
+        <h3 class="text-lg font-semibold">Gear Items</h3>
+        <p class="text-3xl font-bold mt-2" id="gear-count">6</p>
+        <p class="text-sm text-gray-400 mt-1">Updated recently</p>
+        <div class="badge text-yellow-400" id="gear-time">1m 0s</div>
+      </div>
+      <div class="card relative">
+        <div class="card-icon text-blue-400">🥚</div>
+        <h3 class="text-lg font-semibold">Eggs</h3>
+        <p class="text-3xl font-bold mt-2" id="egg-count">3</p>
+        <p class="text-sm text-gray-400 mt-1">Updated recently</p>
+        <div class="badge text-blue-400" id="egg-time">1m 0s</div>
+      </div>
+      <div class="card relative">
+        <div class="card-icon text-purple-400">💄</div>
+        <h3 class="text-lg font-semibold">Cosmetics</h3>
+        <p class="text-3xl font-bold mt-2" id="cosmetic-count">8</p>
+        <p class="text-sm text-gray-400 mt-1">Updated recently</p>
+        <div class="badge text-purple-400" id="cosmetic-time">1m 0s</div>
+      </div>
+      <div class="card relative">
+        <div class="card-icon text-orange-500">🎉</div>
+        <h3 class="text-lg font-semibold">Events</h3>
+        <p class="text-3xl font-bold mt-2" id="event-count">6</p>
+        <p class="text-sm text-gray-400 mt-1">Updated recently</p>
+        <div class="badge text-orange-400" id="event-time">1m 0s</div>
+      </div>
+    </div>
 
-  <div id="status" class="text-center text-lg font-semibold my-4 text-gray-700"></div>
-  <div class="flex justify-center gap-4">
-    <button id="refresh-btn" class="px-6 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition-colors duration-200">🔄 Refresh</button>
-    <button id="subscribe-btn" class="px-6 py-2 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors duration-200">🔔 Subscribe</button>
-  </div>
+    <div class="mt-6 flex justify-center gap-4">
+      <label class="flex items-center gap-2 text-lg font-medium text-gray-300">
+        <span>In Stock</span>
+        <div class="switch">
+          <input type="checkbox" id="view-toggle">
+          <span class="slider"></span>
+        </div>
+        <span>All Items</span>
+      </label>
+      <button id="refresh-btn" class="px-6 py-2 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition-colors duration-200">🔄 Refresh</button>
+    </div>
 
-  <div id="stock-container" class="max-w-7xl mx-auto p-4"></div>
+    <div id="stock-container" class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+  </div>
 
   <div id="debug-tab" class="fixed bottom-6 right-6 bg-green-600 text-white p-3 rounded-full text-lg cursor-pointer hover:bg-green-700 transition-colors duration-200">🪲</div>
   <div id="debug-window" class="fixed bottom-20 right-6 w-80 max-h-96 bg-white/90 backdrop-filter blur-8px border border-gray-200 rounded-xl p-4 overflow-y-auto hidden">
@@ -125,213 +272,179 @@
   </div>
 
   <script>
-    const stockURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/stock';
-    const itemInfoURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/item-info';
-    const weatherURL = 'https://corsproxy.io/?https://api.joshlei.com/v2/growagarden/weather';
-    const statusEl = document.getElementById('status');
-    const container = document.getElementById('stock-container');
-    const weatherContainer = document.getElementById('weather-content');
+    const stockURL = 'https://api.joshlei.com/v2/growagarden/stock';
+    const itemInfoURL = 'https://api.joshlei.com/v2/growagarden/info/';
+    const weatherURL = 'https://api.joshlei.com/v2/growagarden/weather';
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.getElementById('main-content');
+    const hamburger = document.getElementById('hamburger');
+    const summaryCards = document.getElementById('summary-cards');
+    const stockContainer = document.getElementById('stock-container');
     const refreshBtn = document.getElementById('refresh-btn');
-    const subscribeBtn = document.getElementById('subscribe-btn');
-    const statusTextEl = document.getElementById('status-text');
-    const uptimeEl = document.getElementById('uptime');
+    const viewToggle = document.getElementById('view-toggle');
     const debugTab = document.getElementById('debug-tab');
     const debugWindow = document.getElementById('debug-window');
     const debugContent = document.getElementById('debug-content');
     const closeDebug = document.getElementById('close-debug');
-    const viewToggle = document.getElementById('view-toggle');
+    const navItems = document.querySelectorAll('.nav-item');
+    const weatherInfo = document.getElementById('weather-info');
 
-    let latestData = {}, latestWeather = {}, first = true, notified = false, seconds = 0, isAllView = false;
+    let stockData = {}, itemInfo = [], weatherData = {}, isAllView = false, currentCategory = 'dashboard', seconds = 0;
 
-    function updateStatus(msg, col = '#2e7d32') {
-      statusEl.textContent = msg;
-      statusTextEl.textContent = msg;
-      statusTextEl.style.color = col;
-      gsap.to(statusTextEl, { scale: 1.05, duration: 0.2, yoyo: true, repeat: 1 });
+    function logDebug(msg) {
+      debugContent.textContent += `\n[${new Date().toLocaleString()}] ${msg}\n`;
     }
 
-    setInterval(() => {
+    function updateTime() {
       seconds++;
-      uptimeEl.textContent = `Uptime: ${seconds}s`;
-    }, 1000);
-
-    function notify() {
-      if (!("Notification" in window) || notified) return;
-      if (Notification.permission === "granted") {
-        new Notification("Garden Stock Updated!", { body: "Check the latest items!", icon: container.querySelector('img')?.src });
-        notified = true;
+      const now = Math.floor(Date.now() / 1000); 
+      const initialTimes = { seed: 60, gear: 60, egg: 60, cosmetic: 60, event: 60 };
+      document.querySelectorAll('.badge').forEach(badge => {
+        const [cat] = badge.id.split('-');
+        let timeLeft = initialTimes[cat] - (now - 1750456160) || 0; 
+        badge.textContent = `${Math.floor(timeLeft / 60)}m ${timeLeft % 60}s`;
+      });
+      if (weatherData.weather) {
+        const active = weatherData.weather.find(w => w.active);
+        const timeLeft = active ? Math.max(0, active.end_duration_unix - now) : 0;
+        weatherInfo.innerHTML = `
+          <p class="text-sm text-gray-300">Weather: ${active ? active.weather_name : 'None'}</p>
+          <p class="text-sm text-gray-300">Time Left: ${formatTime(timeLeft)}</p>
+        `;
       }
     }
 
-    function hasChanged(o, n) {
-      return JSON.stringify(o) !== JSON.stringify(n);
-    }
-
-    function rarity(q) {
-      if (q >= 50) return 'common';
-      if (q >= 20) return 'uncommon';
-      if (q >= 5) return 'rare';
-      return 'epic';
-    }
+    setInterval(updateTime, 1000);
 
     function formatTime(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${minutes}m ${secs}s`;
+      return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
     }
 
-    function displayWeather(data) {
-      if (!hasChanged(latestWeather, data)) return;
-      latestWeather = data;
-      const activeWeather = data.weather.find(w => w.active) || null;
-      if (activeWeather) {
-        const remainingTime = activeWeather.end_duration_unix - Math.floor(Date.now() / 1000);
-        weatherContainer.innerHTML = `
-          <div class="text-green-800 font-semibold">${activeWeather.weather_name}</div>
-          <div class="text-sm text-gray-600">Duration: ${formatTime(activeWeather.duration)}</div>
-          <div class="text-sm text-gray-600">Time Left: ${remainingTime > 0 ? formatTime(remainingTime) : 'Ending soon'}</div>
+    function updateSummary() {
+      if (currentCategory !== 'dashboard') {
+        summaryCards.style.display = 'none';
+        return;
+      }
+      summaryCards.style.display = 'grid';
+      const counts = { seed: 4, gear: 6, egg: 3, cosmetic: 8, event: 6 };
+      for (const cat in counts) {
+        document.getElementById(`${cat}-count`).textContent = counts[cat];
+      }
+    }
+
+    function renderItems(category) {
+      stockContainer.innerHTML = '';
+      if (category === 'dashboard') return;
+      let items = [];
+      items = isAllView ? itemInfo.filter(i => i.category === category) : stockData[category] || [];
+
+      items.forEach((item, idx) => {
+        const card = document.createElement('div');
+        card.className = 'item-card relative';
+        const rarity = itemInfo.find(i => i.item_id === item.item_id)?.rarity?.toLowerCase() || 'common';
+        const timeLeft = item.end_date_unix ? Math.max(0, item.end_date_unix - Math.floor(Date.now() / 1000)) : 0;
+        card.innerHTML = `
+          <div class="rarity" style="background-color: ${rarity === 'common' ? '#9e9e9e' : rarity === 'uncommon' ? '#66bb6a' : rarity === 'rare' ? '#42a5f5' : '#ab47bc'}">${rarity.toUpperCase()}</div>
+          <img src="${item.icon}" alt="${item.display_name}" class="w-20 h-20 object-contain mx-auto mt-4" onerror="this.src='https://via.placeholder.com/20';">
+          <h3 class="text-lg font-semibold mt-2">${item.display_name || item.item_id}</h3>
+          <p class="text-xl font-bold mt-1">${item.quantity || 0}</p>
+          <p class="text-sm text-gray-400">${timeLeft ? `Time Left: ${formatTime(timeLeft)}` : 'No timer'}</p>
         `;
-      } else {
-        weatherContainer.innerHTML = `<div class="text-gray-600">No active weather event</div>`;
-      }
-      gsap.from(weatherContainer, { opacity: 0, y: 10, duration: 0.5 });
+        stockContainer.appendChild(card);
+        gsap.from(card, { opacity: 0, y: 20, duration: 0.5, delay: idx * 0.05 });
+      });
     }
 
-    function display(data) {
-      if (!hasChanged(latestData, data)) return;
-      latestData = data;
-      notified = false;
-      container.innerHTML = '';
-      for (const cat in data) {
-        const arr = data[cat];
-        if (!Array.isArray(arr)) continue;
-        const sec = document.createElement('div');
-        sec.className = 'stock-category mb-6 p-4 container';
-        const h2 = document.createElement('h2');
-        h2.className = 'text-lg font-semibold text-green-800 bg-green-100 p-3 rounded-lg text-center';
-        h2.textContent = cat.replace(/_/g, ' ');
-        sec.appendChild(h2);
-        const items = document.createElement('div');
-        items.className = 'items grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4';
-        arr.forEach((it, index) => {
-          if (it.icon) {
-            const card = document.createElement('div');
-            card.className = 'item-card relative bg-white p-4 rounded-lg border border-gray-200';
-            const r = rarity(it.quantity || 0);
-            const rb = document.createElement('div');
-            rb.className = `rarity ${r} text-white text-xs font-semibold px-2 py-1 rounded mb-2`;
-            rb.textContent = r.toUpperCase();
-            rb.style.backgroundColor = r === 'common' ? '#9e9e9e' : r === 'uncommon' ? '#66bb6a' : r === 'rare' ? '#42a5f5' : '#ab47bc';
-            card.appendChild(rb);
-            const img = document.createElement('img');
-            img.src = it.icon;
-            img.alt = it.display_name || it.item_id;
-            img.className = 'w-20 h-20 object-contain mx-auto';
-            card.appendChild(img);
-            const nm = document.createElement('div');
-            nm.className = 'item-name font-semibold mt-2 text-gray-800 text-sm text-center';
-            nm.textContent = it.display_name || it.item_id;
-            card.appendChild(nm);
-            const qty = document.createElement('div');
-            qty.className = 'item-qty text-gray-600 text-sm text-center';
-            qty.textContent = `Qty: ${it.quantity || 0}`;
-            card.appendChild(qty);
+    async function fetchData() {
+      try {
+        logDebug('Fetching stock data...');
+        const stockRes = await fetch(stockURL);
+        stockData = await stockRes.json();
+        logDebug(`Stock data: ${JSON.stringify(stockData, null, 2)}`);
 
-            if ((isAllView || it.quantity > 0) && it.item_id) {
-              const dropdown = document.createElement('div');
-              dropdown.className = 'dropdown absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg p-4 mt-2 shadow-lg hidden z-10';
-              const buyBtn = document.createElement('button');
-              buyBtn.className = 'w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-200';
-              buyBtn.textContent = 'Buy in Roblox';
-              buyBtn.onclick = () => window.open('https://www.roblox.com/games/126884695634066/Grow-a-Garden', '_blank');
-              dropdown.appendChild(buyBtn);
-              card.appendChild(dropdown);
+        logDebug('Fetching item info...');
+        const infoRes = await fetch(itemInfoURL);
+        itemInfo = await infoRes.json();
+        logDebug(`Item info: ${JSON.stringify(itemInfo, null, 2)}`);
 
-              card.onclick = (e) => {
-                e.stopPropagation();
-                const isOpen = dropdown.style.display === 'block';
-                document.querySelectorAll('.dropdown').forEach(d => d.style.display = 'none');
-                dropdown.style.display = isOpen ? 'none' : 'block';
-                gsap.fromTo(dropdown, { scaleY: 0, opacity: 0 }, { scaleY: 1, opacity: 1, duration: 0.3, ease: 'power2.out' });
-              };
-            }
-
-            items.appendChild(card);
-            gsap.from(card, { opacity: 0, y: 10, duration: 0.5, delay: index * 0.05 });
-          }
-        });
-        sec.appendChild(items);
-        container.appendChild(sec);
-        gsap.from(sec, { opacity: 0, y: 20, duration: 0.5 });
+        updateSummary();
+        renderItems(currentCategory);
+      } catch (e) {
+        console.error(e);
+        logDebug(`Fetch error: ${e.message}`);
       }
-      if (!first) notify();
-      else first = false;
     }
 
     async function fetchWeather() {
       try {
-        const response = await fetch(weatherURL);
-        const data = await response.json();
-        debugContent.textContent += `\nWeather Data: ${JSON.stringify(data, null, 2)}`;
-        displayWeather(data);
+        logDebug('Fetching weather data...');
+        const weatherRes = await fetch(weatherURL);
+        weatherData = await weatherRes.json();
+        logDebug(`Weather data: ${JSON.stringify(weatherData, null, 2)}`);
+        updateTime(); 
       } catch (e) {
         console.error(e);
-        weatherContainer.innerHTML = `<div class="text-red-600">Failed to fetch weather ❌</div>`;
-        debugContent.textContent += `\nWeather Error: ${e.message}`;
-      }
-    }
-
-    async function fetchData() {
-      const url = isAllView ? itemInfoURL : stockURL;
-      try {
-        updateStatus(`Fetching ${isAllView ? 'all items' : 'stock'}...`, '#2e7d32');
-        const response = await fetch(url);
-        const j = await response.json();
-        debugContent.textContent = JSON.stringify(j, null, 2);
-        display(j);
-        updateStatus(`${isAllView ? 'All items' : 'Stock'} updated ✅`, '#00c853');
-      } catch (e) {
-        console.error(e);
-        updateStatus(`Failed to fetch ${isAllView ? 'items' : 'stock'} ❌`, '#c62828');
-        debugContent.textContent = `Error: ${e.message}`;
+        logDebug(`Weather error: ${e.message}`);
       }
     }
 
     fetchData();
     fetchWeather();
-    setInterval(fetchData, 15000);
-    setInterval(fetchWeather, 15000);
+    setInterval(() => {
+      fetchData();
+      fetchWeather();
+    }, 15000);
 
     viewToggle.onchange = () => {
       isAllView = viewToggle.checked;
-      fetchData();
+      logDebug(`View toggle changed to: ${isAllView}`);
+      updateSummary();
+      renderItems(currentCategory);
     };
 
-    refreshBtn.onclick = () => location.reload();
-    subscribeBtn.onclick = () => {
-      Notification.requestPermission().then(() => {
-        subscribeBtn.textContent = Notification.permission === "granted" ? "🔔 Subscribed" : Notification.permission === "denied" ? "🔕 Denied" : "🔔 Subscribe";
-      });
+    refreshBtn.onclick = () => {
+      logDebug('Refresh button clicked');
+      fetchData();
+      fetchWeather();
     };
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        navItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        currentCategory = item.getAttribute('data-category');
+        logDebug(`Nav clicked: ${currentCategory}`);
+        updateSummary();
+        renderItems(currentCategory);
+      });
+    });
+
+    hamburger.addEventListener('click', () => {
+      sidebar.classList.toggle('open');
+      const isOpen = sidebar.classList.contains('open');
+      mainContent.classList.toggle('shifted');
+      sidebar.classList.remove('hidden');
+      if (!isOpen) {
+        setTimeout(() => sidebar.classList.add('hidden'), 300);
+      }
+    });
+
     debugTab.onclick = () => {
       debugWindow.style.display = debugWindow.style.display === 'block' ? 'none' : 'block';
       if (debugWindow.style.display === 'block') {
         gsap.from(debugWindow, { x: 20, opacity: 0, duration: 0.5 });
       }
     };
+
     closeDebug.onclick = () => {
       gsap.to(debugWindow, { x: 20, opacity: 0, duration: 0.3, onComplete: () => debugWindow.style.display = 'none' });
     };
 
-    // Close dropdowns when clicking outside
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('.item-card')) {
+      if (!e.target.closest('.item-card') && !e.target.closest('.card')) {
         document.querySelectorAll('.dropdown').forEach(d => d.style.display = 'none');
       }
     });
-
-    gsap.from('h1', { opacity: 0, y: -20, duration: 0.8 });
-    gsap.from('.container', { opacity: 0, y: 20, duration: 0.8, stagger: 0.2 });
   </script>
 </body>
 </html>
