@@ -15,11 +15,10 @@
             color: #e2e8f0;
             margin: 0;
             padding: 0;
-            /* Prevent body scroll when sidebar is open on mobile */
             overflow-x: hidden;
         }
         body.sidebar-open {
-            overflow: hidden; /* Prevent scrolling of main content when sidebar is open */
+            overflow: hidden;
         }
         .sidebar {
             background: #2d3748;
@@ -29,11 +28,11 @@
             padding: 1.5rem;
             box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
             transition: transform 0.3s ease;
-            z-index: 1000; /* Ensure sidebar is above main content */
-            transform: translateX(-250px); /* Initially hidden on small screens */
+            z-index: 1000;
+            transform: translateX(-250px);
         }
         .sidebar.open {
-            transform: translateX(0); /* Show sidebar */
+            transform: translateX(0);
         }
         .nav-item {
             display: flex;
@@ -49,7 +48,7 @@
             background-color: #4a5568;
         }
         .hamburger {
-            display: none; /* Hidden by default, shown on mobile via media query */
+            display: none;
             font-size: 1.5rem;
             cursor: pointer;
             color: #e2e8f0;
@@ -57,15 +56,15 @@
             position: fixed;
             top: 1rem;
             left: 1rem;
-            z-index: 1001; /* Ensure hamburger is above sidebar */
+            z-index: 1001;
         }
         .main-content {
-            margin-left: 0; /* Default on mobile */
+            margin-left: 0;
             padding: 1.5rem;
             transition: margin-left 0.3s ease;
         }
         .main-content.shifted {
-            margin-left: 250px; /* Shift content when sidebar is open on mobile */
+            margin-left: 250px;
         }
         .card, .item-card {
             background: #2d3748;
@@ -159,8 +158,6 @@
             border-radius: 0.5rem;
             text-align: center;
         }
-
-        /* Overlay for mobile when sidebar is open */
         body.sidebar-open::after {
             content: '';
             position: fixed;
@@ -168,67 +165,60 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black overlay */
-            z-index: 999; /* Below sidebar, above main content */
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
             opacity: 0;
-            pointer-events: none; /* Don't block clicks when not visible */
+            pointer-events: none;
             transition: opacity 0.3s ease;
         }
         body.sidebar-open::after {
             opacity: 1;
-            pointer-events: auto; /* Block clicks when visible */
+            pointer-events: auto;
         }
-
-        /* Mobile Styles */
         @media (max-width: 767px) {
             .hamburger {
-                display: block; /* Show hamburger on mobile */
+                display: block;
             }
             .sidebar {
-                /* On mobile, sidebar is initially off-screen */
                 transform: translateX(-250px);
             }
             .sidebar.open {
-                transform: translateX(0); /* Slide in when 'open' class is added */
+                transform: translateX(0);
             }
             .main-content {
-                margin-left: 0; /* No margin on mobile by default */
+                margin-left: 0;
             }
             .main-content.shifted {
-                margin-left: 250px; /* Shift main content when sidebar is open */
+                margin-left: 250px;
             }
             .grid {
-                grid-template-columns: 1fr; /* Stack cards on mobile */
+                grid-template-columns: 1fr;
             }
-            /* Adjust status bar position for mobile */
             .status-bar {
                 top: 0.5rem;
                 right: 0.5rem;
                 padding: 0.3rem 0.7rem;
                 font-size: 0.8rem;
             }
-            /* Adjust card margin on mobile to account for status bar */
             #summary-cards {
-                margin-top: 5rem; /* Give more space below fixed status bar */
+                margin-top: 5rem;
             }
         }
-
-        /* Desktop Styles */
         @media (min-width: 768px) {
             .hamburger {
-                display: none; /* Hide hamburger on desktop */
+                display: none;
             }
             .sidebar {
-                transform: translateX(0); /* Always visible on desktop */
-                position: fixed; /* Keep it fixed */
+                transform: translateX(0);
+                position: fixed;
                 height: 100vh;
                 padding: 1.5rem;
                 box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-                transition: none; /* No sliding transition on desktop */
+                transition: none;
             }
             .main-content {
-                margin-left: 250px; /* Always shifted on desktop */
-                transition: none; /* No sliding transition on desktop */
+                margin-left: 250px;
+                transition: none;
             }
         }
     </style>
@@ -267,7 +257,7 @@
 
     <div class="main-content" id="main-content">
         <div class="status-bar">
-            <span class="text-green-400">● Connected</span>
+            <span class="text-green-400" id="connection-status">● Connecting...</span>
             <span>Updated: 05:17 PM</span>
         </div>
 
@@ -280,7 +270,7 @@
                 <div class="badge text-green-400" id="seed-time">1m 0s</div>
             </div>
             <div class="card relative">
-                <div class="card-icon text-yellow-500">⚙️</div>
+                <div class="card-icon textustu-yellow-500">⚙️</div>
                 <h3 class="text-lg font-semibold">Gear Items</h3>
                 <p class="text-3xl font-bold mt-2" id="gear-count">6</p>
                 <p class="text-sm text-gray-400 mt-1">Updated recently</p>
@@ -331,12 +321,11 @@
     </div>
 
     <script>
-        const stockURL = 'https://api.joshlei.com/v2/growagarden/stock';
+        const wsURL = 'wss://websocket.joshlei.com/growagarden?user_id=gagstocker';
         const itemInfoURL = 'https://api.joshlei.com/v2/growagarden/info/';
         const weatherURL = 'https://api.joshlei.com/v2/growagarden/weather';
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('main-content');
-        // FIX: Use querySelector to select by class as the HTML element has no ID
         const hamburger = document.querySelector('.hamburger');
         const summaryCards = document.getElementById('summary-cards');
         const stockContainer = document.getElementById('stock-container');
@@ -348,41 +337,22 @@
         const closeDebug = document.getElementById('close-debug');
         const navItems = document.querySelectorAll('.nav-item');
         const weatherInfo = document.getElementById('weather-info');
+        const connectionStatus = document.getElementById('connection-status');
 
         let stockData = {}, itemInfo = [], weatherData = {}, isAllView = false, currentCategory = 'dashboard', seconds = 0;
+        let ws;
 
         function logDebug(msg) {
             debugContent.textContent += `\n[${new Date().toLocaleString()}] ${msg}\n`;
-            debugContent.scrollTop = debugContent.scrollHeight; // Scroll to bottom
+            debugContent.scrollTop = debugContent.scrollHeight;
         }
 
         function updateTime() {
             seconds++;
             const now = Math.floor(Date.now() / 1000);
-            // Re-evaluating based on observation: 1750456160 looks like a fixed timestamp.
-            // For a 'last updated x seconds/minutes ago', we should use current time minus last fetch time.
-            // However, the current setup seems to simulate a countdown from a fixed point.
-            // If the intention is a fixed countdown for the badges, keep it as is.
-            // If it's 'time since last update', we need to store the last fetch timestamp.
-            const initialTimes = { seed: 60, gear: 60, egg: 60, cosmetic: 60, event: 60 }; // Placeholder if not dynamic
-            // This calculation (now - 1750456160) seems to be based on an absolute timestamp.
-            // For a countdown, you'd usually have an 'end_time' from the API or a dynamic calculation.
-            // Let's assume for now, these badge times are just dummy '1m 0s' and don't actually count down.
-            // If they are supposed to countdown, you need a dynamic `last_updated_timestamp` for each.
-            // For demonstration, let's make them show consistent '1m 0s' or similar, or countdown from fetch.
-            // For now, these badges remain static placeholders as per original logic.
             document.querySelectorAll('.badge').forEach(badge => {
-                const [cat] = badge.id.split('-');
-                // If you want a countdown, you'd need a specific end time per category here.
-                // For now, they are effectively static due to the original badge update logic.
-                // To actually count down, you need to store `lastFetchTime` and calculate `elapsed = now - lastFetchTime`
-                // and then `timeLeft = initialDuration - elapsed`.
-                // For simplicity, keeping it as the original snippet suggests, which results in fixed text.
-                // If you want a functional countdown for each badge, you need to extend the data fetching to include `next_update_time`
-                // for each category or simulate it based on a fixed interval (e.g., 60 seconds).
-                badge.textContent = `1m 0s`; // Example: Display static for now, or implement real countdown
+                badge.textContent = `1m 0s`;
             });
-
 
             if (weatherData.weather) {
                 const active = weatherData.weather.find(w => w.active);
@@ -392,7 +362,6 @@
                     <p class="text-sm text-gray-300">Time Left: ${formatTime(timeLeft)}</p>
                 `;
             }
-            // Update the main status bar 'Updated' time
             const date = new Date();
             const hours = date.getHours();
             const minutes = date.getMinutes().toString().padStart(2, '0');
@@ -414,16 +383,14 @@
                 summaryCards.style.display = 'none';
                 return;
             }
-            summaryCards.style.display = 'grid'; // Tailwind's grid class will take over display
+            summaryCards.style.display = 'grid';
             const counts = { seed: 0, gear: 0, egg: 0, cosmetic: 0, event: 0 };
 
-            // Count items from stockData if available
             for (const cat in counts) {
-                if (stockData[cat + '_stock']) { // Assuming stockData has keys like 'seed_stock'
+                if (stockData[cat + '_stock']) {
                     counts[cat] = stockData[cat + '_stock'].length;
                 }
             }
-            // Fallback counts for categories that might not exist in `stockData` or initial load
             document.getElementById('seed-count').textContent = counts.seed || '0';
             document.getElementById('gear-count').textContent = counts.gear || '0';
             document.getElementById('egg-count').textContent = counts.egg || '0';
@@ -431,27 +398,24 @@
             document.getElementById('event-count').textContent = counts.event || '0';
         }
 
-
         function renderItems(category) {
             stockContainer.innerHTML = '';
             if (category === 'dashboard') {
-                stockContainer.style.display = 'none'; // Hide item list on dashboard
+                stockContainer.style.display = 'none';
                 return;
             } else {
-                stockContainer.style.display = 'grid'; // Show item list for other categories
+                stockContainer.style.display = 'grid';
             }
 
             let itemsToDisplay = [];
             if (isAllView) {
-                // For "All Items" view, filter from `itemInfo` based on category
-                itemsToDisplay = itemInfo.filter(i => i.category === category.replace('_stock', '')); // Remove _stock suffix
+                itemsToDisplay = itemInfo.filter(i => i.category === category.replace('_stock', ''));
             } else {
-                // For "In Stock" view, use `stockData`
                 itemsToDisplay = stockData[category] || [];
             }
 
             if (itemsToDisplay.length === 0) {
-                stockContainer.innerHTML = `<p class="text-center col-span-full text-gray-400">No items available in this category.</p>`;
+                stockContainer.innerHTML = `<p class="text-center col-span-full text-gray-400">No items available in this category.</p`;
                 return;
             }
 
@@ -459,30 +423,23 @@
                 const card = document.createElement('div');
                 card.className = 'item-card relative';
 
-                // Find item details from itemInfo for display_name, icon, rarity etc.
                 const fullItemInfo = itemInfo.find(i => i.item_id === item.item_id) || {};
                 const rarity = fullItemInfo.rarity?.toLowerCase() || 'common';
                 const displayName = fullItemInfo.display_name || item.item_id || 'Unknown Item';
-                const icon = fullItemInfo.icon || 'https://via.placeholder.com/20'; // Fallback image
+                const icon = `https://image.joshlei.com/${item.item_id}.png`;
 
-                // If 'quantity' is missing in `item`, default to 1 for `isAllView` or 0 for `inStock` if not found.
-                // For `isAllView`, we are displaying all possible items, so `quantity` might not be directly relevant,
-                // or you might want to show 'N/A' or '0' if it's not currently in stock.
-                // For `stockData`, `item.quantity` is expected.
                 const quantityDisplay = (isAllView && typeof item.quantity === 'undefined') ? '-' : (item.quantity || 0);
-
                 const timeLeft = item.end_date_unix ? Math.max(0, item.end_date_unix - Math.floor(Date.now() / 1000)) : 0;
                 const timeText = timeLeft > 0 ? `Time Left: ${formatTime(timeLeft)}` : 'No timer';
 
-                // Determine rarity color
                 let rarityColor;
                 switch (rarity) {
                     case 'common': rarityColor = '#9e9e9e'; break;
                     case 'uncommon': rarityColor = '#66bb6a'; break;
                     case 'rare': rarityColor = '#42a5f5'; break;
-                    case 'epic': rarityColor = '#ab47bc'; break; // Added 'epic' example
-                    case 'legendary': rarityColor = '#ffc107'; break; // Added 'legendary' example
-                    default: rarityColor = '#9e9e9e'; // Default for unknown
+                    case 'epic': rarityColor = '#ab47bc'; break;
+                    case 'legendary': rarityColor = '#ffc107'; break;
+                    default: rarityColor = '#9e9e9e';
                 }
 
                 card.innerHTML = `
@@ -497,26 +454,54 @@
             });
         }
 
-        async function fetchData() {
-            try {
-                logDebug('Fetching stock data...');
-                const stockRes = await fetch(stockURL);
-                if (!stockRes.ok) throw new Error(`HTTP error! status: ${stockRes.status}`);
-                stockData = await stockRes.json();
-                logDebug(`Stock data: ${JSON.stringify(stockData, null, 2)}`);
+        function connectWebSocket() {
+            ws = new WebSocket(wsURL);
+            logDebug('Connecting to WebSocket...');
 
+            ws.onopen = () => {
+                logDebug('WebSocket connected');
+                connectionStatus.textContent = '● Connected';
+                connectionStatus.className = 'text-green-400';
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    stockData = JSON.parse(event.data);
+                    logDebug(`WebSocket data received: ${JSON.stringify(stockData, null, 2)}`);
+                    updateSummary();
+                    renderItems(currentCategory);
+                } catch (e) {
+                    logDebug(`WebSocket data error: ${e.message}`);
+                    stockContainer.innerHTML = `<p class="text-center col-span-full text-red-400">Failed to load data. Please try refreshing.</p>`;
+                }
+            };
+
+            ws.onerror = (error) => {
+                logDebug(`WebSocket error: ${error.message || 'Unknown error'}`);
+                connectionStatus.textContent = '● Disconnected';
+                connectionStatus.className = 'text-red-400';
+            };
+
+            ws.onclose = () => {
+                logDebug('WebSocket closed, attempting to reconnect in 5 seconds...');
+                connectionStatus.textContent = '● Reconnecting...';
+                connectionStatus.className = 'text-yellow-400';
+                setTimeout(connectWebSocket, 5000);
+            };
+        }
+
+        async function fetchItemInfo() {
+            try {
                 logDebug('Fetching item info...');
                 const infoRes = await fetch(itemInfoURL);
                 if (!infoRes.ok) throw new Error(`HTTP error! status: ${infoRes.status}`);
                 itemInfo = await infoRes.json();
                 logDebug(`Item info: ${JSON.stringify(itemInfo, null, 2)}`);
-
                 updateSummary();
                 renderItems(currentCategory);
             } catch (e) {
-                console.error("Error fetching data:", e);
-                logDebug(`Fetch error: ${e.message}`);
-                stockContainer.innerHTML = `<p class="text-center col-span-full text-red-400">Failed to load data. Please try refreshing.</p>`;
+                logDebug(`Item info fetch error: ${e.message}`);
+                stockContainer.innerHTML = `<p class="text-center col-span-full text-red-400">Failed to load item info. Please try refreshing.</p>`;
             }
         }
 
@@ -529,31 +514,30 @@
                 logDebug(`Weather data: ${JSON.stringify(weatherData, null, 2)}`);
                 updateTime();
             } catch (e) {
-                console.error("Error fetching weather:", e);
                 logDebug(`Weather error: ${e.message}`);
                 weatherInfo.innerHTML = `<p class="text-sm text-red-300">Weather: Error</p><p class="text-sm text-red-300">Time Left: N/A</p>`;
             }
         }
 
-        // Initial fetches
-        fetchData();
+        connectWebSocket();
+        fetchItemInfo();
         fetchWeather();
-        // Set intervals for periodic updates
-        setInterval(() => {
-            fetchData();
-            fetchWeather();
-        }, 15000); // Fetch every 15 seconds
+        setInterval(fetchWeather, 15000);
 
         viewToggle.onchange = () => {
             isAllView = viewToggle.checked;
             logDebug(`View toggle changed to: ${isAllView ? 'All Items' : 'In Stock'}`);
-            // No need to call updateSummary here as it only depends on category
             renderItems(currentCategory);
         };
 
         refreshBtn.onclick = () => {
             logDebug('Refresh button clicked');
-            fetchData();
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send('refresh');
+            } else {
+                connectWebSocket();
+            }
+            fetchItemInfo();
             fetchWeather();
         };
 
@@ -563,24 +547,21 @@
                 item.classList.add('active');
                 currentCategory = item.getAttribute('data-category');
                 logDebug(`Nav clicked: ${currentCategory}`);
-                updateSummary(); // Update summary if dashboard is clicked
+                updateSummary();
                 renderItems(currentCategory);
 
-                // Close sidebar on mobile after clicking a nav item
                 if (window.innerWidth <= 767) {
                     sidebar.classList.remove('open');
-                    // sidebar.classList.add('hidden'); // 'open' class directly controls transform
                     mainContent.classList.remove('shifted');
-                    document.body.classList.remove('sidebar-open'); // Remove overlay
+                    document.body.classList.remove('sidebar-open');
                 }
             });
         });
 
         hamburger.addEventListener('click', () => {
             sidebar.classList.toggle('open');
-            // sidebar.classList.toggle('hidden'); // 'open' directly controls visibility via transform
             mainContent.classList.toggle('shifted');
-            document.body.classList.toggle('sidebar-open'); // Toggle overlay class
+            document.body.classList.toggle('sidebar-open');
             logDebug(`Hamburger clicked: Sidebar ${sidebar.classList.contains('open') ? 'opened' : 'closed'}`);
         });
 
@@ -595,10 +576,8 @@
             gsap.to(debugWindow, { x: 20, opacity: 0, duration: 0.3, onComplete: () => debugWindow.style.display = 'none' });
         };
 
-        // Close sidebar if overlay is clicked on mobile
         document.body.addEventListener('click', (e) => {
             if (window.innerWidth <= 767 && document.body.classList.contains('sidebar-open')) {
-                // If the click is outside the sidebar and not on the hamburger
                 if (!sidebar.contains(e.target) && !hamburger.contains(e.target)) {
                     sidebar.classList.remove('open');
                     mainContent.classList.remove('shifted');
